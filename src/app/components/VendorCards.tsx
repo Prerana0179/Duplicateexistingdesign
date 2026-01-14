@@ -222,7 +222,23 @@ const vendorInspections: Record<string, VendorInspectionData> = {
   }
 };
 
-export function VendorCards() {
+// Map report IDs to vendor IDs for quick lookup
+const reportIdToVendorId: Record<string, string> = {
+  'insp_vendor_1': '1',
+  'insp_vendor_2': '2',
+  'insp_vendor_3': '3'
+};
+
+// Function to get vendor ID from report ID
+function getVendorIdFromReportId(reportId: string): string {
+  return reportIdToVendorId[reportId] || reportId;
+};
+
+interface VendorCardsProps {
+  onSiteInspectionClick?: () => void;
+}
+
+export function VendorCards({ onSiteInspectionClick }: VendorCardsProps = {}) {
   const navigate = useNavigate();
   const { 
     selectedVendorId: persistedVendorId, 
@@ -257,6 +273,8 @@ export function VendorCards() {
       // Show inspection report modal
       setReportVendorId(vendorId);
     } else {
+      // Trigger parent callback for inspection banner
+      onSiteInspectionClick?.();
       // Show site inspection scheduling modal
       setSelectedVendorId(vendorId);
     }

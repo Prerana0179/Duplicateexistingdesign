@@ -1,6 +1,7 @@
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ProjectMilestones } from './ProjectMilestones';
+import { MilestoneFormData } from './CreateMilestone';
 
 /**
  * Project Milestones Wrapper (Customer & Vendor View)
@@ -18,14 +19,16 @@ import { ProjectMilestones } from './ProjectMilestones';
 interface ProjectMilestonesWrapperProps {
   onRegenerate?: () => void;
   showRegenerateButton?: boolean;
+  milestoneFormData?: MilestoneFormData | null;
 }
 
-export function ProjectMilestonesWrapper({ onRegenerate, showRegenerateButton = false }: ProjectMilestonesWrapperProps = {}) {
+export function ProjectMilestonesWrapper({ onRegenerate, showRegenerateButton = false, milestoneFormData }: ProjectMilestonesWrapperProps = {}) {
   return (
     <DndProvider backend={HTML5Backend}>
       <ProjectMilestones 
         onRegenerate={onRegenerate}
         showRegenerateButton={showRegenerateButton}
+        milestoneFormData={milestoneFormData}
       />
     </DndProvider>
   );

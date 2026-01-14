@@ -12,6 +12,7 @@ import { DatePickerInput } from './DatePickerInput';
  * Customer view uses the separate "Edit Milestones" component.
  * 
  * FORM FIELDS:
+ * - Project Title (required)
  * - Start Date (required)
  * - End Date (required)
  * - Duration (auto-calculated from dates)
@@ -31,6 +32,7 @@ interface CreateMilestoneProps {
 }
 
 export interface MilestoneFormData {
+  projectTitle: string;
   startDate: string;
   endDate: string;
   duration: number;
@@ -92,25 +94,31 @@ function numberToWords(num: number): string {
 }
 
 export function CreateMilestone({ onGenerateMilestones, milestonesGenerated }: CreateMilestoneProps) {
+  const [projectTitle, setProjectTitle] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [duration, setDuration] = useState<number | null>(null);
+  const [numberOfDays, setNumberOfDays] = useState('');
   const [numberOfMilestones, setNumberOfMilestones] = useState('1');
   const [totalCost, setTotalCost] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Auto-calculate duration when dates change
+  // Auto-calculate end date when start date or number of days change
   useEffect(() => {
-    if (startDate && endDate) {
+    if (startDate && numberOfDays && parseInt(numberOfDays) > 0) {
       const start = new Date(startDate);
-      const end = new Date(endDate);
-      const diffTime = Math.abs(end.getTime() - start.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      setDuration(diffDays);
+      const days = parseInt(numberOfDays);
+      const end = new Date(start);
+      end.setDate(start.getDate() + days);
+      
+      // Format end date as YYYY-MM-DD for consistency
+      const year = end.getFullYear();
+      const month = String(end.getMonth() + 1).padStart(2, '0');
+      const day = String(end.getDate()).padStart(2, '0');
+      setEndDate(`${year}-${month}-${day}`);
     } else {
-      setDuration(null);
+      setEndDate('');
     }
-  }, [startDate, endDate]);
+  }, [startDate, numberOfDays]);
 
   // Convert costs to words
   const totalCostInWords = totalCost 
@@ -119,9 +127,10 @@ export function CreateMilestone({ onGenerateMilestones, milestonesGenerated }: C
 
   const handleGenerateMilestones = () => {
     const formData: MilestoneFormData = {
+      projectTitle,
       startDate,
       endDate,
-      duration: duration || 0,
+      duration: parseInt(numberOfDays) || 0,
       numberOfMilestones: parseInt(numberOfMilestones) || 1,
       totalCost,
       notes,
@@ -130,7 +139,7 @@ export function CreateMilestone({ onGenerateMilestones, milestonesGenerated }: C
     onGenerateMilestones?.(formData);
   };
 
-  const isFormValid = startDate && endDate && numberOfMilestones && totalCost;
+  const isFormValid = projectTitle && startDate && numberOfDays && numberOfMilestones && totalCost;
 
   return (
     <div 
@@ -162,8 +171,22 @@ export function CreateMilestone({ onGenerateMilestones, milestonesGenerated }: C
 
       {/* Form Content */}
       <div className="p-6" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* Date Row */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Project Title */}
+        <div>
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Project Title <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={projectTitle}
+            onChange={(e) => setProjectTitle(e.target.value)}
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            placeholder="Enter project title"
+          />
+        </div>
+
+        {/* Date Row with Duration in Between */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-end">
           {/* Start Date */}
           <DatePickerInput
             value={startDate}
@@ -174,60 +197,110 @@ export function CreateMilestone({ onGenerateMilestones, milestonesGenerated }: C
             minDate={new Date()} // Disable past dates
           />
 
-          {/* End Date */}
-          <DatePickerInput
-            value={endDate}
-            onChange={setEndDate}
-            label="End Date"
-            placeholder="Select end date"
-            required
-            minDate={startDate ? new Date(startDate) : new Date()} // Disable dates before start date
-          />
+          {/* No. of Days (Editable Input) */}
+          <div className="flex flex-col">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              No. of Days <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={numberOfDays}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Only allow positive integers
+                if (value === '' || (parseInt(value) > 0 && !value.includes('.'))) {
+                  setNumberOfDays(value);
+                }
+              }}
+              disabled={!startDate}
+              className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+              style={{ 
+                minWidth: '120px',
+                textAlign: 'center',
+                fontWeight: '500',
+              }}
+              placeholder={startDate ? "Enter days" : "—"}
+            />
+          </div>
+
+          {/* End Date (Auto-calculated, Read-only) */}
+          <div className="flex flex-col">
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              End Date <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={endDate ? new Date(endDate).toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
+              }) : ''}
+              readOnly
+              disabled
+              className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-500"
+              style={{ 
+                fontWeight: '500',
+                cursor: 'not-allowed',
+              }}
+              placeholder="Auto-calculated"
+            />
+          </div>
         </div>
 
-        {/* Duration (Auto-calculated) */}
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            Duration (in Days)
-          </label>
-          <input
-            type="text"
-            value={duration !== null ? `${duration} days` : 'Select start and end dates'}
-            disabled
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-500 bg-gray-50 cursor-not-allowed"
-          />
-        </div>
+        {/* Financial Configuration Row: Milestones + Total Cost + Cost in Words */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4">
+          {/* Number of Milestones - Matches Start Date width */}
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Number of Milestones <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={numberOfMilestones}
+              onChange={(e) => setNumberOfMilestones(e.target.value)}
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              placeholder="1"
+            />
+          </div>
 
-        {/* Number of Milestones */}
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            Number of Milestones <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="number"
-            min="1"
-            value={numberOfMilestones}
-            onChange={(e) => setNumberOfMilestones(e.target.value)}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            placeholder="1"
-          />
-        </div>
+          {/* Total Cost - Matches No. of Days position */}
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Total Cost (₹) <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={totalCost}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, '');
+                setTotalCost(value);
+              }}
+              className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              style={{ 
+                minWidth: '120px',
+              }}
+              placeholder="Enter total cost"
+            />
+          </div>
 
-        {/* Total Cost - Full Width */}
-        <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
-            Total Cost (₹) <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={totalCost}
-            onChange={(e) => {
-              const value = e.target.value.replace(/[^0-9]/g, '');
-              setTotalCost(value);
-            }}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            placeholder="Enter total cost"
-          />
+          {/* Total Cost in Words - EXACTLY matches End Date width (1fr) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Total Cost in Words
+            </label>
+            <input
+              type="text"
+              value={totalCostInWords}
+              readOnly
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 text-gray-600"
+              style={{ 
+                cursor: 'default',
+              }}
+              placeholder="Enter total cost to see in words"
+            />
+          </div>
         </div>
 
         {/* Notes / Description */}
@@ -242,24 +315,6 @@ export function CreateMilestone({ onGenerateMilestones, milestonesGenerated }: C
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
             placeholder="Enter project details, scope of work, special requirements, etc."
           />
-        </div>
-
-        {/* Cost in Words Section */}
-        <div 
-          className="p-4 rounded-lg"
-          style={{
-            backgroundColor: '#FFFBEB',
-            border: '1px solid #FDE68A',
-          }}
-        >
-          <div>
-            <div className="text-xs font-medium text-gray-600 mb-1" style={{ letterSpacing: '0.5px' }}>
-              TOTAL COST IN WORDS
-            </div>
-            <div className="text-sm text-gray-900 font-medium">
-              {totalCostInWords}
-            </div>
-          </div>
         </div>
 
         {/* Generate Button */}
@@ -279,7 +334,7 @@ export function CreateMilestone({ onGenerateMilestones, milestonesGenerated }: C
             }}
           >
             <Target className="w-5 h-5" strokeWidth={2} />
-            {milestonesGenerated ? 'Regenerate Milestones' : 'Generate Milestones'}
+            {milestonesGenerated ? 'Regenerate Milestones' : 'Create Milestones'}
           </button>
           
           <p className="text-center text-xs text-gray-500 mt-3">

@@ -11,6 +11,7 @@ interface Milestone {
 interface MilestoneProgressBarProps {
   milestones: Milestone[];
   onNodeClick?: (milestoneNumber: number) => void;
+  onNodeHover?: (milestoneNumber: number | null) => void;
 }
 
 interface ConfettiParticle {
@@ -23,7 +24,7 @@ interface ConfettiParticle {
   opacity: number;
 }
 
-export function MilestoneProgressBar({ milestones, onNodeClick }: MilestoneProgressBarProps) {
+export function MilestoneProgressBar({ milestones, onNodeClick, onNodeHover }: MilestoneProgressBarProps) {
   const [hoveredNode, setHoveredNode] = useState<number | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -235,6 +236,10 @@ export function MilestoneProgressBar({ milestones, onNodeClick }: MilestoneProgr
       });
     } else {
       setTooltipPosition(null);
+    }
+
+    if (onNodeHover) {
+      onNodeHover(milestoneNumber);
     }
   };
 
@@ -507,7 +512,7 @@ export function MilestoneProgressBar({ milestones, onNodeClick }: MilestoneProgr
                 )}
 
                 {/* Tooltip */}
-                {hoveredNode === milestone.number && tooltipPosition && (
+                {hoveredNode === milestone.number && tooltipPosition && !onNodeHover && (
                   <div
                     className="fixed z-50"
                     style={{

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { toast } from 'sonner';
 import { HorizontalTimeline } from './HorizontalTimeline';
 import { DetailsRow } from './DetailsRow';
 import { ProjectFinancialsCard } from './ProjectFinancialsCard';
@@ -7,7 +8,7 @@ import { Milestones } from './Milestones';
 import { VendorCards } from './VendorCards';
 import { QuestionsAnswers } from './QuestionsAnswers';
 import { ProjectMilestonesWrapper } from './ProjectMilestonesWrapper';
-import { CreateMilestone } from './CreateMilestone';
+import { CreateMilestone, MilestoneFormData } from './CreateMilestone';
 import { ProjectDashboardLayout } from './ProjectDashboardLayout';
 import { ProjectProfileCard } from './ProjectProfileCard';
 import { InspectionCompletedBanner } from './InspectionCompletedBanner';
@@ -16,6 +17,8 @@ import { useVendorSelection } from '@/app/contexts/VendorSelectionContext';
 
 export function CollapsibleProject() {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showInspectionBanner, setShowInspectionBanner] = useState(false);
+  const [milestoneFormData, setMilestoneFormData] = useState<MilestoneFormData | null>(null);
   const { currentRole } = useRole();
   const { 
     inspectionCompleted, 
@@ -29,6 +32,20 @@ export function CollapsibleProject() {
     console.log('Regenerating milestones...');
     // Clear milestones to show Create Milestone form again
     clearMilestones();
+    setMilestoneFormData(null);
+  };
+
+  const handleSiteInspectionClick = () => {
+    // Step 1: Instant feedback - Show scheduling toast
+    toast.info('Site inspection scheduled', {
+      duration: 2000,
+      icon: '📅',
+    });
+
+    // Step 2: Delayed confirmation - Show completion banner after 3 seconds
+    setTimeout(() => {
+      setShowInspectionBanner(true);
+    }, 3000);
   };
 
   return (
@@ -94,7 +111,7 @@ export function CollapsibleProject() {
             leftColumnBottom={<Milestones />}
             rightColumn={
               currentRole === 'Customer' ? (
-                <VendorCards />
+                <VendorCards onSiteInspectionClick={handleSiteInspectionClick} />
               ) : (
                 <ProjectProfileCard
                   projectName="Residential Villa Construction"
@@ -120,17 +137,24 @@ export function CollapsibleProject() {
 
           {/* 4. Role-Based Milestone Section - Full Width (matches Q&A) */}
           <div className="mb-8">
-            {/* Inspection Completed Banner (shown ABOVE milestone section when inspection is complete) */}
-            {inspectionCompleted && inspectionCompletionDate && (
-              <InspectionCompletedBanner
-                completionDate={inspectionCompletionDate}
-                className="mb-4"
-              />
+            {/* Inspection Completed Banner (shown ABOVE milestone section after Site Inspection click) */}
+            {showInspectionBanner && (
+              <div
+                style={{
+                  animation: 'inspectionBannerAppear 200ms ease-out',
+                  transformOrigin: 'top'
+                }}
+              >
+                <InspectionCompletedBanner
+                  completionDate="14 Jan 2026"
+                  className="mb-4"
+                />
+              </div>
             )}
 
             {currentRole === 'Customer' ? (
-              // Customer View: Always show Edit Milestones
-              <ProjectMilestonesWrapper />
+              // Customer View: NO milestone editing - customers only view project progress elsewhere
+              null
             ) : (
               // Vendor View: SWAP between Create Milestone and Edit Milestones
               <>
@@ -139,17 +163,27 @@ export function CollapsibleProject() {
                   <CreateMilestone 
                     onGenerateMilestones={(data) => {
                       console.log('Generate Milestones:', data);
+                      // Store milestone form data
+                      setMilestoneFormData(data);
                       // Mark milestones as generated (triggers swap to Edit Milestones)
                       markMilestonesGenerated();
                     }}
                     milestonesGenerated={milestonesGenerated}
                   />
                 ) : (
-                  // After Generation: Show Edit Milestones (replaces Create Milestone in same position)
-                  <ProjectMilestonesWrapper 
-                    onRegenerate={handleRegenerateMilestones}
-                    showRegenerateButton={true}
-                  />
+                  // After Generation: Show Edit Milestones with fade-in animation
+                  <div
+                    style={{
+                      animation: 'fadeSlideUp 150ms ease-out',
+                      transformOrigin: 'top'
+                    }}
+                  >
+                    <ProjectMilestonesWrapper 
+                      onRegenerate={handleRegenerateMilestones}
+                      showRegenerateButton={true}
+                      milestoneFormData={milestoneFormData}
+                    />
+                  </div>
                 )}
               </>
             )}

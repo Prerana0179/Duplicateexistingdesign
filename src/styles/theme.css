@@ -282,4 +282,28 @@
       opacity: 0;
     }
   }
+
+  /* Fade + Slide Up animation for Edit Milestones reveal */
+  @keyframes fadeSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Fade + Slide Up animation for Inspection Banner */
+  @keyframes inspectionBannerAppear {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
