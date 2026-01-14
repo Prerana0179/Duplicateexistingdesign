@@ -1,5 +1,5 @@
 
-  # Duplicate Existing Design
+  # Vendor box
 
   This is a code bundle for Duplicate Existing Design. The original project is available at https://www.figma.com/design/RcW8FGNqSBEcTkLA3kSglS/Duplicate-Existing-Design.
 
